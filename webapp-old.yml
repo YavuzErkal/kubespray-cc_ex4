@@ -1,0 +1,137 @@
+---
+- name: Install python package
+  hosts: node1
+  ansible.builtin.pip:
+    name:
+      - python>=3.9
+      - kubernetes>=24.2.0
+      - PyYAML >= 3.11
+      - jsonpatch
+
+- name: Create a k8s namespace
+  hosts: node1
+  kubernetes.core.k8s:
+    name: cc-namespace
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Create frontend Service
+  hosts: node1
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: frontend-service
+        namespace: cc-namespace
+        labels:
+          app: frontend-app
+      spec:
+        selector:
+          app: frontend-deployment
+        type: NodePort
+        ports:
+        - protocol: TCP
+          targetPort: 8000
+          name: port-8000-tcp
+          port: 8000
+
+- name: Create backend Service
+  hosts: node1
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: cc-backend-service
+        namespace: cc-namespace
+        labels:
+          app: backend-app
+      spec:
+        selector:
+          app: backend-deployment
+        type: ClusterIP
+        ports:
+        - protocol: TCP
+          targetPort: 8080
+          name: port-3000-tcp
+          port: 8080
+
+- name: Create a Deployment for frontend
+  hosts: node1
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Deployment
+      metadata:
+        name: frontend-deployment
+        namespace: cc-namespace
+        labels:
+          app: frontend-deployment
+      spec:
+        replicas: 4
+        selector:
+          matchLabels:
+            app: frontend-app
+        template:
+          metadata:
+            labels:
+              app: frontend-app
+        spec:
+          containers:
+          - name: frontend-container
+            image: yavuzerkal/frontend-img:1.0
+            ports:
+            - containerPort: 8000
+            livenessProbe:
+              httpGet:
+                path: /health
+                port: 8000
+              initialDelaySeconds: 10
+              periodSeconds: 5
+            readinessProbe:
+              httpGet:
+                path: /health
+                port: 8000
+
+- name: Create a Deployment for backend
+  hosts: node1
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Deployment
+      metadata:
+        name: backend-deployment
+        namespace: cc-namespace
+        labels:
+          app: backend-deployment
+      spec:
+        replicas: 6
+        selector:
+          matchLabels:
+            app: backend-app
+        template:
+          metadata:
+            labels:
+              app: backend-app
+        spec:
+          containers:
+          - name: backend-container
+            image: yavuzerkal/backend-img:1.0
+            ports:
+            - containerPort: 8080
+            livenessProbe:
+              httpGet:
+                path: /health
+                port: 8000
+              initialDelaySeconds: 10
+              periodSeconds: 5
+            readinessProbe:
+              httpGet:
+                path: /health
+                port: 8000
