@@ -40,12 +40,14 @@ cat inventory/mycluster/group_vars/k8s_cluster/k8s-cluster.yml
 # Without --become the playbook will fail to run!
 # And be mind it will remove the current kubernetes cluster (if it's running)!
 ansible-playbook -i inventory/mycluster/inventory.ini  --become --become-user=root reset.yml
+ansible-playbook -i inventory/mycluster/inventory-2.ini  --become --become-user=root reset.yml
 
 # Deploy Kubespray with Ansible Playbook - run the playbook as root
 # The option `--become` is required, as for example writing SSL keys in /etc/,
 # installing packages and interacting with various systemd daemons.
 # Without --become the playbook will fail to run!
 ansible-playbook -i inventory/mycluster/inventory.ini  --become --become-user=root cluster.yml
+ansible-playbook -i inventory/mycluster/inventory-2.ini  --become --become-user=root cluster.yml
 ```
 
 Note: When Ansible is already installed via system packages on the control node,
